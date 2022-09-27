@@ -1,54 +1,64 @@
+import { React} from 'react';
+import { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, TextInput, Button, Dimensions } from 'react-native';
 import MapView, { Marker } from'react-native-maps';
 import * as Location from'expo-location';
 
 export default function App() {
-
-  const [location, setLocation] = useState('');
-  const [coordinates, setCoordinates] = useState({ latitude: 60.200692, longitude: 24.934302, latitudeDelta: 0.0322, longitudeDelta: 0.0221});
-
+  
+  const [location, setLocation] = useState({latitude: 0, longitude: 0, latitudeDelta: 0.0322, longitudeDelta: 0.0221 }); // State where location is saved  
+  const [search, setSearch] = useState('');
   const apikey = '9CZ5yt0C4TcCgBMqY6HffGPrdansAJrG';
   const url = 'http://www.mapquestapi.com/geocoding/v1/address?'
- 
-  const getLocation = async () => {
-    try{
-      const response = await fetch(`${url}key=${apikey}&location=${location}`);
+  
+    useEffect(() => {
+      (async () => {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('No permission to get location')
+          return;
+        }
+
+        let position = await Location.getCurrentPositionAsync({});
+        const location = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          latitudeDelta: 0.0322,
+          longitudeDelta: 0.0221
+        }
+        
+        setLocation(location);
+      })();
+    }, []);
+
+      const getLocation = async () => {
+      const response = await fetch(`${url}key=${apikey}&location=${search}`); 
       const data = await response.json();
 
-      let coordinate = {
+      let location = {
         latitude: data.results[0].locations[0].latLng.lat,
         longitude: data.results[0].locations[0].latLng.lng,
-        latitudeDelta: 0.0322, /*starting marker Haaga-Helia*/
-        longitudeDelta: 0.0221}/*starting marker Haaga-Helia*/
-
-        /* {"info":{"statuscode":0,"copyright":{"text":"\u00A9 2022 MapQuest, Inc.","imageUrl":"http://api.mqcdn.com/res/mqlogo.gif","imageAltText":"\u00A9 2022 MapQuest, Inc."},"messages":[]},"options":{"maxResults":-1,"thumbMaps":true,"ignoreLatLngInput":false},
-        "results":[{"providedLocation":{"location":"lahti"},
-        "locations":[{"street":"","adminArea6":"","adminArea6Type":"Neighborhood","adminArea5":"Lahti","adminArea5Type":"City","adminArea4":"","adminArea4Type":"County","adminArea3":"SOUTHERN FINLAND","adminArea3Type":"State","adminArea1":"FI","adminArea1Type":"Country","postalCode":"","geocodeQualityCode":"A5XAX","geocodeQuality":"CITY","dragPoint":false,"sideOfStreet":"N","linkId":"282333075","unknownInput":"","type":"s",
-        "latLng":{"lat":60.983876,"lng":25.656181}, */
-  
-      setCoordinates(coordinate)
-
-
-    } catch (error) {
-      console.error(error)
-    }
-  }
-
+        latitudeDelta: 0.0322,
+        longitudeDelta: 0.0221
+      }
+        setLocation(location)
+      }
+      
   return (
     <View style={styles.container}>
       <MapView  
         style={styles.map}   
-        region={coordinates}>
+        region={location}>
         <Marker
-          coordinate={coordinates}
-          title={location} />
+          coordinate={location}
+          title={search} />
       </MapView>
       <View>
         <TextInput 
           placeholder="enter a location" 
           style={styles.input} 
-          onChangeText={text => setLocation(location)}/>
+          onChangeText={search => setSearch(search)}/>
         <View 
           style={{ width:Dimensions.get("window").width * 1.0, flexDirection: 'row', justifyContent: 'center', marginTop: 5}}>
          <Button 
@@ -61,7 +71,6 @@ export default function App() {
     </View>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: {
